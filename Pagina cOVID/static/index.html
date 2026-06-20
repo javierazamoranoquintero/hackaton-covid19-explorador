@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>COVID-19 Explorador de Datos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js: librería externa para crear gráficos -->
+    <!-- La cargamos desde CDN igual que Tailwind, sin instalar nada -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-950 text-white min-h-screen">
+
+<!-- ── CAPA 1: Fondo decorativo de virus (detrás de todo) ────────── -->
+<!-- fixed + inset-0: cubre toda la pantalla y no se mueve al hacer scroll -->
+<!-- z-0: queda en la capa más atrás -->
+<!-- pointer-events-none: los clics lo atraviesan, no lo afectan -->
+<!-- aria-hidden: los lectores de pantalla lo ignoran (es decorativo) -->
+<div class="fixed inset-0 z-0 pointer-events-none overflow-hidden select-none"
+     aria-hidden="true">
+    <div id="virus-pattern"
+         class="w-full h-full opacity-30 grid grid-cols-8 md:grid-cols-12 gap-4 p-4"
+         style="min-height: 100vh;">
+        <!-- Los 120 emojis de virus se generan aquí con JavaScript -->
+    </div>
+</div>
+
+<!-- ── CAPA 2: Spinner de carga (encima de todo mientras carga) ───── -->
+<!-- z-50: queda encima del fondo y del contenido -->
+<!-- hidden: empieza invisible, JS lo muestra con classList.remove('hidden') -->
+<div id="loading-overlay"
+     class="fixed inset-0 z-50 bg-slate-950 bg-opacity-90
+                flex items-center justify-center hidden">
+    <div class="text-center">
+        <!-- Borde azul solo arriba (border-t-blue-400) + animate-spin = spinner -->
+        <div class="w-16 h-16 border-4 border-gray-700 border-t-blue-400
+                        rounded-full animate-spin mx-auto"></div>
+        <p class="text-gray-400 mt-4 text-sm">Cargando datos...</p>
+    </div>
+</div>
+
+<!-- ── CAPA 3: Contenido principal (sobre el fondo, bajo el spinner) ─ -->
+
+<!-- HEADER: título y navegación -->
+<header class="relative z-10 bg-slate-900 bg-opacity-80 py-8 px-6 border-b border-slate-700">
+    <div class="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+        <div>
+            <h1 class="text-3xl font-bold text-blue-400">🦠 COVID-19 Explorador</h1>
+            <p class="text-gray-400 mt-1 text-sm">Datos en tiempo real desde disease.sh</p>
+        </div>
+
+        <!-- NAV: links internos que llevan a cada sección con scroll -->
+        <nav class="flex gap-4 text-sm">
+            <a href="#global"  class="text-gray-400 hover:text-blue-400 transition-colors">🌍 Global</a>
+            <a href="#buscar"  class="text-gray-400 hover:text-blue-400 transition-colors">🔍 Buscar</a>
+            <a href="#ranking" class="text-gray-400 hover:text-blue-400 transition-colors">🏆 Ranking</a>
+            <a href="#grafico" class="text-gray-400 hover:text-blue-400 transition-colors">📊 Gráfico</a>
+
+        </nav>
+
+    </div>
+</header>
+
+<!-- MAIN: todo el contenido de la página -->
+<!-- relative z-10: asegura que quede encima del fondo decorativo -->
+<main class="relative z-10 max-w-5xl mx-auto px-6 py-10">
+
+    <!-- SECCIÓN 1: estadísticas globales -->
+    <section id="global">
+        <h2 class="text-xl font-semibold text-gray-300 mb-4">🌍 Estadísticas Globales</h2>
+        <!-- grid responsivo: 1 col móvil → 2 col tablet → 4 col desktop -->
+        <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <p class="text-gray-400 col-span-4">Cargando datos...</p>
+        </div>
+    </section>
+    <!-- SECCIÓN 2: buscador de país -->
+    <section id="buscar" class="mt-14">
+        <h2 class="text-xl font-semibold text-gray-300 mb-4">🔍 Buscar País</h2>
+
+        <!-- aside: bloque de ayuda secundario al contenido principal -->
+        <aside class="bg-slate-900 border border-slate-700 rounded-lg p-3 mb-5 text-sm text-gray-400 max-w-xl">
+            💡 Escribe el nombre del país en inglés y presiona
+            <kbd class="bg-slate-700 px-1 rounded">Enter</kbd>
+            <br/>Ejemplos: <span class="text-blue-400">Chile, Brazil, USA, Germany, Japan</span>
+        </aside>
+
+        <input
+                type="text"
+                id="search-input"
+                placeholder="Ej: Chile, Brazil, USA..."
+                class="w-full md:w-96 px-4 py-2 rounded-lg bg-slate-800 border border-slate-600
+                       text-white placeholder-gray-500 focus:outline-none focus:border-blue-400
+                       transition-colors"
+        />
+
+        <!-- La card del país buscado aparece aquí, generada por JS -->
+        <div id="country-result" class="mt-6"></div>
+
+    <!-- SECCIÓN 3: ranking Top 5 países -->
+    <section id="ranking" class="mt-14">
+        <h2 class="text-xl font-semibold text-gray-300 mb-4">🏆 Top 5 Países Más Afectados</h2>
+        <div id="top-countries" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <p class="text-gray-400">Cargando ranking...</p>
+        </div>
+    </section>
+
+
+    </section>
+
+    <!-- Fecha de última actualización, generada por JS -->
+    <div id="last-updated" class="mt-10"></div>
+
+    <!-- SECCIÓN 4: gráfico comparativo de Top 5 países -->
+    <section id="grafico" class="mt-14">
+        <h2 class="text-xl font-semibold text-gray-300 mb-4">
+            📊 Comparativa Visual — Top 5 Países
+        </h2>
+
+        <!-- Contenedor del gráfico con fondo oscuro -->
+        <div class="bg-slate-800 rounded-xl p-6 border border-slate-700">
+
+            <!-- canvas es el "lienzo" donde Chart.js dibuja el gráfico -->
+            <!-- max-h-96 limita la altura para que no sea gigante -->
+            <canvas id="countries-chart" class="max-h-96"></canvas>
+
+        </div>
+    </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="relative z-10 text-center text-gray-600 py-6 border-t border-slate-800 mt-6">
+    <p>
+        Datos:
+        <a href="https://disease.sh" target="_blank" class="text-blue-500 hover:underline">
+            disease.sh
+        </a>
+        | Worldometers
+    </p>
+    <p class="text-xs mt-1 text-gray-700">Hackatón JavaScript Avanzado — Felipe Cuevas</p>
+</footer>
+
+<script src="app.js"></script>
+
+</body>
+</html>
